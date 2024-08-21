@@ -18,11 +18,7 @@
         state: present
 
 # NEXUS SERVER
-<<<<<<< HEAD
 - name: Configure Nexus server
-=======
-name: Configure Nexus server 
->>>>>>> 93ac688a90ec1e5441b7c1d3a32d7ae19353b4e7
   hosts: n5
   become: true
   tasks:
@@ -61,19 +57,12 @@ name: Configure Nexus server
         group: nexus
         recurse: yes
 
-    # Ensure the directory exists before attempting to modify it
-    - name: Check if nexus.rc file exists
-      stat:
-        path: /opt/nexus-3.37.3-02/bin/nexus.rc
-      register: nexus_rc
-
     - name: Set Nexus RUN_AS_USER in nexus.rc
       lineinfile:
         path: /opt/nexus-3.37.3-02/bin/nexus.rc
         regexp: '^#RUN_AS_USER='
         line: 'RUN_AS_USER=nexus'
         state: present
-      when: nexus_rc.stat.exists
 
     - name: Set Nexus as a service
       copy:
