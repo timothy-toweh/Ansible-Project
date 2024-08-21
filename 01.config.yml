@@ -2,8 +2,7 @@
 - name: Configure build server
   hosts: n4
   become: true
-
-  tasks: 
+  tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
@@ -13,22 +12,25 @@
         name: openjdk-11-jdk
         state: present
 
-    - name: Install Maven 
+    - name: Install Maven
       apt:
         name: maven
         state: present
 
 # NEXUS SERVER
+<<<<<<< HEAD
+- name: Configure Nexus server
+=======
 name: Configure Nexus server 
+>>>>>>> 93ac688a90ec1e5441b7c1d3a32d7ae19353b4e7
   hosts: n5
   become: true
-
   tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install Java 
+    - name: Install Java
       apt:
         name: openjdk-11-jdk
         state: present
@@ -102,13 +104,14 @@ name: Configure Nexus server
         state: started
 
 # DEPLOY SERVERS
-- hosts: deploy
+- name: Configure deploy servers
+  hosts: deploy
   become: yes
   tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
-     
+
     - name: Install Java JDK
       apt:
         name: openjdk-11-jdk
