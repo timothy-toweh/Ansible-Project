@@ -1,0 +1,8 @@
+---
+- hosts: n4
+  become: yes
+  tasks:
+    - name: Run tests using Maven
+      shell: "mvn test"
+      args:
+        chdir: /home/ubuntu/workspace/ansible-project

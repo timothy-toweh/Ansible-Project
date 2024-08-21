@@ -1,0 +1,119 @@
+---
+#BUILD SERVER
+- name: Configure build server
+  hosts: n4
+  become: true
+
+  tasks: 
+   - name: install java
+     apt:
+      name: openjdk-11-jdk
+      state: present
+   - name: install maven 
+     apt:
+      name: maven
+      state: present
+
+
+#NEXUS SERVER
+- name: configure nexus server 
+  hosts: n5
+  become: true
+
+  tasks:
+    - name: Install Java 
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Create Nexus User
+      user:
+        name: nexus
+        state: present
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Download Nexus
+      get_url:
+        url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+        dest: /opt/nexus.tar.gz
+
+    - name: Extract Nexus
+      unarchive:
+        src: /opt/nexus.tar.gz
+        dest: /opt
+        remote_src: yes
+
+    - name: Change ownership to Nexus user
+      file:
+        path: /opt/nexus-3.37.3-02
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+
+    - name: Set Nexus as a service
+      copy:
+        dest: /etc/systemd/system/nexus.service
+        content: |
+          [Unit]
+          Description=nexus service
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=nexus
+          ExecStart=/opt/nexus-3.37.3-02/bin/nexus start
+          ExecStop=/opt/nexus-3.37.3-02/bin/nexus stop
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Nexus service
+      systemd:
+        name: nexus
+        enabled: yes
+        state: started
+
+#DEPLOY SERVERS
+- hosts: g1
+  become: yes
+  tasks:
+    - name: Install Java JDK
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Download Apache Tomcat
+      get_url:
+        url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.65/bin/apache-tomcat-9.0.65.tar.gz
+        dest: /opt/tomcat.tar.gz
+
+    - name: Extract Apache Tomcat
+      unarchive:
+        src: /opt/tomcat.tar.gz
+        dest: /opt
+        remote_src: yes
+
+    - name: Create symbolic link for Tomcat
+      file:
+        src: /opt/apache-tomcat-9.0.65
+        dest: /opt/tomcat
+        state: link
+
+    - name: Change ownership to tomcat
+      file:
+        path: /opt/tomcat
+        state: directory
+        owner: root
+        group: root
+        recurse: yes
+
+    - name: Start Tomcat service
+      shell: "/opt/tomcat/bin/startup.sh"
+      args:
+        chdir: /opt/tomcat/
+        
+
+

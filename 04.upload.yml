@@ -1,0 +1,32 @@
+---
+- hosts: n4
+  become: yes
+  tasks:
+    - name: Read the Maven version
+      shell: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout"
+      args:
+        chdir: /home/ubuntu/workspace/ci-cd
+      register: maven_version
+
+    - name: Set the version as a fact
+      set_fact:
+        version: "{{ maven_version.stdout }}"
+
+    - name: Upload WAR to Nexus
+      uri:
+        url: "http://{{ hostvars['nexus'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        method: POST
+        user: "admin"  # Replace with the actual username
+        password: "admin123"  # Replace with the actual password
+        force_basic_auth: yes
+        body_format: form-multipart
+        body:
+          r: "releases"
+          hasPom: 'false'
+          e: 'war'
+          g: "com.web.cal"
+          a: "WebAppCal"
+          v: "{{ version }}"
+          p: 'war'
+          file: "/home/ubuntu/workspace/ci-cd/target/WebAppCal-{{ version }}.war"
+        status_code: 201

@@ -1,0 +1,13 @@
+---
+- hosts: n4
+  become: yes
+  tasks:
+    - name: Pull the latest code from the repository
+      git:
+        repo: 'https://github.com/timothy-toweh/ansible-project'
+        dest: /home/ubuntu/workspace/ansible-project
+
+    - name: Build the application using Maven
+      shell: "mvn clean package"
+      args:
+        chdir: /home/ubuntu/workspace/ansible-project

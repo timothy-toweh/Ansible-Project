@@ -1,0 +1,18 @@
+---
+- hosts: deploy
+  become: yes
+  tasks:
+    - name: Download WAR from Nexus
+      get_url:
+        url: "http://{{ hostvars['nexus'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        dest: "/opt/tomcat/webapps/WebAppCal.war"
+
+    - name: Stop Tomcat service
+      shell: "/opt/tomcat/bin/shutdown.sh"
+      args:
+        chdir: /opt/tomcat/
+
+    - name: Start Tomcat service
+      shell: "/opt/tomcat/bin/startup.sh"
+      args:
+        chdir: /opt/tomcat/
