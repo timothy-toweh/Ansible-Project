@@ -3,14 +3,12 @@ pipeline {
 
     environment {
         NEXUS_CREDS = credentials('nexus-credentials')
-        NEXUS_USER = "${NEXUS_CREDS_USR}"
-        NEXUS_PASS = "${NEXUS_CREDS_PSW}"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/timothy-toweh/ansible-project.git'
+                git branch: 'main', url: 'https://github.com/timothy-toweh/ansible-project.git'
             }
         }
         stage('Configuration') {
@@ -30,11 +28,13 @@ pipeline {
         }
         stage('Upload to Nexus') {
             steps {
-                sh '''
-                    ansible-playbook -i hosts.ini 04.upload.yml \
-                    -e nexus_username=${NEXUS_USER} \
-                    -e nexus_password=${NEXUS_PASS}
-                '''
+                withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                    sh '''
+                        ansible-playbook -i hosts.ini 04.upload.yml \
+                        -e nexus_username=${NEXUS_USER} \
+                        -e nexus_password=${NEXUS_PASS}
+                    '''
+                }
             }
         }
         stage('Deploy to Tomcat') {
