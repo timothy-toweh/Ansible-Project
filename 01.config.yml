@@ -77,7 +77,7 @@
         state: started
 
 #DEPLOY SERVERS
-- hosts: g1
+- hosts: deploy
   become: yes
   tasks:
     - name: Install Java JDK
