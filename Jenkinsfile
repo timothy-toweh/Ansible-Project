@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent {label 'ansible-master'}
 
     environment {
         NEXUS_CREDS = credentials('nexus-credentials')
