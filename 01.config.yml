@@ -4,27 +4,27 @@
   become: true
 
   tasks: 
-    - name: update apt cache
+    - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: install java
+    - name: Install Java
       apt:
         name: openjdk-11-jdk
         state: present
 
-    - name: install maven 
+    - name: Install Maven 
       apt:
         name: maven
         state: present
 
 # NEXUS SERVER
-- name: configure nexus server 
+- name: Configure Nexus server 
   hosts: n5
   become: true
 
   tasks:
-    - name: update apt cache
+    - name: Update apt cache
       apt:
         update_cache: yes
 
@@ -51,13 +51,20 @@
         dest: /opt
         remote_src: yes
 
-    - name: Change ownership to Nexus user
+    - name: Set ownership for Nexus directories
       file:
         path: /opt/nexus-3.37.3-02
         state: directory
         owner: nexus
         group: nexus
         recurse: yes
+
+    - name: Set Nexus RUN_AS_USER in nexus.rc
+      lineinfile:
+        path: /opt/nexus-3.37.3-02/bin/nexus.rc
+        regexp: '^#RUN_AS_USER='
+        line: 'RUN_AS_USER=nexus'
+        state: present
 
     - name: Set Nexus as a service
       copy:
@@ -77,6 +84,10 @@
           [Install]
           WantedBy=multi-user.target
 
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
     - name: Enable and start Nexus service
       systemd:
         name: nexus
@@ -87,7 +98,7 @@
 - hosts: deploy
   become: yes
   tasks:
-    - name: update apt cache
+    - name: Update apt cache
       apt:
         update_cache: yes
      
@@ -113,12 +124,18 @@
         dest: /opt/tomcat
         state: link
 
-    - name: Change ownership to tomcat
+    - name: Create Tomcat user and set ownership
+      user:
+        name: tomcat
+        state: present
+        shell: /bin/false
+
+    - name: Set ownership for Tomcat
       file:
         path: /opt/tomcat
         state: directory
-        owner: root
-        group: root
+        owner: tomcat
+        group: tomcat
         recurse: yes
 
     - name: Start Tomcat service
