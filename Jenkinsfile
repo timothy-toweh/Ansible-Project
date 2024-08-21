@@ -44,7 +44,7 @@ pipeline {
         }
     }
 
-    #post {
+    post {
         success {
             mail to: 'timothytoweh1@gmail.com',
                  subject: 'Jenkins CI-CD Successful',
