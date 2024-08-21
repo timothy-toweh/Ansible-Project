@@ -12,20 +12,25 @@ pipeline {
                 git url: 'https://github.com/timothy-toweh/ansible-project.git'
             }
         }
+        stage('Configuration') {
+            steps {
+                sh 'ansible-playbook -i hosts.ini 01.config.yml'
+            }
+        }
         stage('Build') {
             steps {
-                sh 'ansible-playbook -i inventory.ini build_application.yml'
+                sh 'ansible-playbook -i hosts.ini 02.build.yml'
             }
         }
         stage('Test') {
             steps {
-                sh 'ansible-playbook -i inventory.ini test_application.yml'
+                sh 'ansible-playbook -i hosts.ini 03.test.yml'
             }
         }
         stage('Upload to Nexus') {
             steps {
                 sh '''
-                    ansible-playbook -i inventory.ini upload_to_nexus.yml \
+                    ansible-playbook -i hosts.ini 04.upload.yml \
                     -e nexus_username=${NEXUS_USER} \
                     -e nexus_password=${NEXUS_PASS}
                 '''
@@ -33,7 +38,7 @@ pipeline {
         }
         stage('Deploy to Tomcat') {
             steps {
-                sh 'ansible-playbook -i inventory.ini deploy_application.yml'
+                sh 'ansible-playbook -i hosts.ini 05.deploy.yml'
             }
         }
     }
