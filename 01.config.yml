@@ -1,33 +1,32 @@
----
-#BUILD SERVER
+# BUILD SERVER
 - name: Configure build server
   hosts: n4
   become: true
 
   tasks: 
-   - name: update apt cache
-     apt:
-     update_cache: yes
+    - name: update apt cache
+      apt:
+        update_cache: yes
 
-   - name: install java
-     apt:
-      name: openjdk-11-jdk
-      state: present
-   - name: install maven 
-     apt:
-      name: maven
-      state: present
+    - name: install java
+      apt:
+        name: openjdk-11-jdk
+        state: present
 
+    - name: install maven 
+      apt:
+        name: maven
+        state: present
 
-#NEXUS SERVER
+# NEXUS SERVER
 - name: configure nexus server 
   hosts: n5
   become: true
 
   tasks:
     - name: update apt cache
-     apt:
-     update_cache: yes
+      apt:
+        update_cache: yes
 
     - name: Install Java 
       apt:
@@ -84,13 +83,13 @@
         enabled: yes
         state: started
 
-#DEPLOY SERVERS
+# DEPLOY SERVERS
 - hosts: deploy
   become: yes
   tasks:
     - name: update apt cache
-     apt:
-     update_cache: yes
+      apt:
+        update_cache: yes
      
     - name: Install Java JDK
       apt:
@@ -126,6 +125,3 @@
       shell: "/opt/tomcat/bin/startup.sh"
       args:
         chdir: /opt/tomcat/
-        
-
-
