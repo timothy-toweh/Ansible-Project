@@ -5,6 +5,10 @@
   become: true
 
   tasks: 
+   - name: update apt cache
+     apt:
+     update_cache: yes
+
    - name: install java
      apt:
       name: openjdk-11-jdk
@@ -21,6 +25,10 @@
   become: true
 
   tasks:
+    - name: update apt cache
+     apt:
+     update_cache: yes
+
     - name: Install Java 
       apt:
         name: openjdk-11-jdk
@@ -80,6 +88,10 @@
 - hosts: deploy
   become: yes
   tasks:
+    - name: update apt cache
+     apt:
+     update_cache: yes
+     
     - name: Install Java JDK
       apt:
         name: openjdk-11-jdk
