@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        NEXUS_USER = credentials('nexus-credentials').username
-        NEXUS_PASS = credentials('nexus-credentials').password
+        NEXUS_CREDS = credentials('nexus-credentials')
+        NEXUS_USER = "${NEXUS_CREDS_USR}"
+        NEXUS_PASS = "${NEXUS_CREDS_PSW}"
     }
 
     stages {
