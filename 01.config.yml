@@ -24,7 +24,7 @@
   vars:
     nexus_version: "3.71.0-06"  # Updated version
     nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-unix.tar.gz"
-    nexus_install_dir: "/opt/nexus"
+    nexus_install_dir: "/opt/nexus-{{ nexus_version }}"
     nexus_data_dir: "/opt/sonatype-work"
     nexus_service_file: "/etc/systemd/system/nexus.service"
 
@@ -59,7 +59,7 @@
     - name: Extract Nexus tarball
       unarchive:
         src: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
-        dest: "{{ nexus_install_dir }}"
+        dest: "/opt"
         remote_src: yes
 
     - name: Create Nexus data directory
@@ -86,7 +86,7 @@
 
     - name: Configure Nexus to run as Nexus user
       lineinfile:
-        path: "{{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus.rc"
+        path: "{{ nexus_install_dir }}/bin/nexus.rc"
         line: "run_as_user=\"nexus\""
         create: yes
 
@@ -102,8 +102,8 @@
           Type=forking
           User=nexus
           Group=nexus
-          ExecStart={{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus start
-          ExecStop={{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus stop
+          ExecStart={{ nexus_install_dir }}/bin/nexus start
+          ExecStop={{ nexus_install_dir }}/bin/nexus stop
           Restart=on-failure
           LimitNOFILE=65536
           LimitNPROC=2048
@@ -128,7 +128,6 @@
         state: absent
 
 
-
 # DEPLOY SERVERS
 - name: Configure deploy servers
   hosts: deploy
@@ -145,7 +144,7 @@
 
     - name: Download Apache Tomcat
       get_url:
-        url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.74/bin/apache-tomcat-9.0.74.tar.gz
+        url: https://downloads.apache.org/tomcat/tomcat-7/v7.0.94/bin/apache-tomcat-7.0.94.tar.gz
         dest: /opt/tomcat.tar.gz
 
     - name: Extract Apache Tomcat
@@ -156,7 +155,7 @@
 
     - name: Create symbolic link for Tomcat
       file:
-        src: /opt/apache-tomcat-9.0.74
+        src: /opt/apache-tomcat-7.0.94
         dest: /opt/tomcat
         state: link
 
