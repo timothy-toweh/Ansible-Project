@@ -18,11 +18,14 @@
         state: present
 
     - name: Set Java 8 as the default
-      update-alternatives:
-        name: java
-        path: /usr/lib/jvm/java-8-openjdk-amd64/bin/java
-        priority: 1081
-        state: link
+      command: update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
+
+    - name: Set JAVA_HOME environment variable
+      lineinfile:
+        path: /etc/environment
+        line: 'JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64'
+        create: yes
+
 
 
 # NEXUS SERVER
