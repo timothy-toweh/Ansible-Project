@@ -1,4 +1,3 @@
----
 - hosts: n4
   become: yes
   tasks:
@@ -30,3 +29,9 @@
           p: 'war'
           file: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
         status_code: 201
+        return_content: yes  # To capture response content for debugging
+      register: response
+
+    - name: Debug response from Nexus
+      debug:
+        var: response
