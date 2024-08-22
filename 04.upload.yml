@@ -17,19 +17,29 @@
       set_fact:
         version: "{{ maven_version.stdout.strip() }}"
 
-    - name: Debug the URL for uploading
+    - name: Debug the file path
       debug:
-        msg: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        msg: "File path: /home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
+
+    - name: Check if the file exists
+      stat:
+        path: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
+      register: file_stat
+
+    - name: Fail if the file does not exist
+      fail:
+        msg: "The file does not exist at the specified path: /home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
+      when: not file_stat.stat.exists
 
     - name: Upload WAR to Nexus
       uri:
         url: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
-        method: PUT  # Use PUT for Maven artifact uploads
+        method: PUT
         user: "{{ nexus_username }}"
         password: "{{ nexus_password }}"
         force_basic_auth: yes
-        body_format: raw  # Use raw for binary data
-        body: "{{ lookup('file', playbook_dir + '/target/WebAppCal-' + version + '.war') }}"
+        body_format: raw
+        body: "{{ lookup('file', '/home/ubuntu/workspace/ansible-project/target/WebAppCal-' + version + '.war') }}"
         status_code: 201
         return_content: yes
       register: response
