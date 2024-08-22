@@ -7,6 +7,16 @@
       apt:
         update_cache: yes
 
+    - name: Remove other Java versions
+      apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - openjdk-11-jdk
+        - openjdk-17-jdk
+        - default-jdk
+      ignore_errors: yes
+
     - name: Install Java 8
       apt:
         name: openjdk-8-jdk
@@ -18,16 +28,10 @@
         state: present
 
     - name: Register Java 8 with update-alternatives for java
-      command: >
-        update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-8-openjdk-amd64/bin/java 1
-      args:
-        creates: /usr/bin/java
+      command: update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-8-openjdk-amd64/bin/java 1
 
     - name: Register Java 8 with update-alternatives for javac
-      command: >
-        update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac 1
-      args:
-        creates: /usr/bin/javac
+      command: update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac 1
 
     - name: Set Java 8 as the default java
       command: update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
@@ -40,6 +44,9 @@
         path: /etc/environment
         line: 'JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64'
         create: yes
+
+    - name: Source /etc/environment
+      shell: source /etc/environment
 
      
 
