@@ -36,6 +36,10 @@
         src: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
       register: war_file
 
+    - name: Debug file content length
+      debug:
+        msg: "WAR file content length: {{ war_file.content | length }}"
+
     - name: Upload WAR to Nexus
       uri:
         url: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
