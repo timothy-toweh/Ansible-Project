@@ -3,7 +3,7 @@
   hosts: deploy
   become: yes
   vars:
-    build_server: n4  # Adjust if the build server's inventory alias is different
+    build_server: n4
     nexus_url: "http://3.90.1.192:8081/nexus"
     repository: "releases"
     group_id: "com.web.cal"
@@ -16,6 +16,7 @@
       delegate_to: "{{ build_server }}"
       command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
       register: mvn_version_output
+      failed_when: "'[ERROR]' in mvn_version_output.stderr"
 
     - name: Set version fact
       set_fact:
@@ -25,12 +26,23 @@
       debug:
         msg: "Artifact version is: {{ version }}"
 
+    - name: Ensure version is valid
+      fail:
+        msg: "Version is not set correctly or is empty."
+      when: version is not defined or version == ""
+
     - name: Download WAR from Nexus
       get_url:
         url: "{{ nexus_url }}/repository/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.{{ packaging }}"
         dest: "{{ deploy_path }}"
         force: yes
+        timeout: 30  # Adjust as needed
+      register: download_result
 
+    - name: Debug download result
+      debug:
+        msg: "Download result: {{ download_result }}"
+      
     - name: Stop Tomcat service
       shell: "/opt/tomcat/bin/shutdown.sh"
       args:
