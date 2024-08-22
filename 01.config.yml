@@ -17,7 +17,7 @@
         name: maven
         state: present
 
-#NEXUS SERVER
+# NEXUS SERVER
 - name: Configure Nexus server
   hosts: n5
   become: true
@@ -111,7 +111,20 @@
       debug:
         var: nexus_service_logs.stdout
 
-    
+    - name: Fix Nexus permissions if service fails
+      when: "'ExecStart=/opt/nexus/bin/nexus start' in nexus_service_logs.stdout"
+      file:
+        path: /opt/nexus/bin/nexus
+        owner: nexus
+        group: nexus
+        mode: '0755'
+
+    - name: Restart Nexus service after fixing permissions
+      when: "'ExecStart=/opt/nexus/bin/nexus start' in nexus_service_logs.stdout"
+      systemd:
+        name: nexus
+        state: restarted
+
 # DEPLOY SERVERS
 - name: Configure deploy servers
   hosts: deploy
