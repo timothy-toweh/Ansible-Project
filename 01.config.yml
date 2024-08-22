@@ -189,6 +189,26 @@
       debug:
         msg: "{{ nexus_service_file_content.stdout }}"
 
+    - name: Check available Java versions
+      command: update-java-alternatives --display
+      register: java_versions
+      failed_when: false
+      changed_when: false
+
+    - name: Print available Java versions
+      debug:
+        msg: "{{ java_versions.stdout }}"
+
+    - name: Ensure correct Java version is being used
+      command: java -version
+      register: java_version_output
+      failed_when: false
+      changed_when: false
+
+    - name: Print Java version
+      debug:
+        msg: "{{ java_version_output.stdout }}\n{{ java_version_output.stderr }}"
+
 # DEPLOY SERVERS
 - name: Configure deploy servers
   hosts: deploy
