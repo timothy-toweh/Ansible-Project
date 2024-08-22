@@ -28,8 +28,8 @@
         user: "{{ nexus_username }}"
         password: "{{ nexus_password }}"
         force_basic_auth: yes
-        body_format: binary
-        body: "@{{ playbook_dir }}/target/WebAppCal-{{ version }}.war"
+        body_format: raw  # Use raw for binary data
+        body: "{{ lookup('file', playbook_dir + '/target/WebAppCal-' + version + '.war') }}"
         status_code: 201
         return_content: yes
       register: response
