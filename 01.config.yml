@@ -17,22 +17,22 @@
         name: maven
         state: present
 
-    - name: Register Java 8 with update-alternatives
+    - name: Register Java 8 with update-alternatives for java
       command: >
         update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-8-openjdk-amd64/bin/java 1
       args:
         creates: /usr/bin/java
 
-    - name: Set Java 8 as the default
-      command: update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
-
-    - name: Register Java 8 with update-alternatives (javac)
+    - name: Register Java 8 with update-alternatives for javac
       command: >
         update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac 1
       args:
         creates: /usr/bin/javac
 
-    - name: Set JAVAC 8 as the default
+    - name: Set Java 8 as the default java
+      command: update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
+
+    - name: Set Java 8 as the default javac
       command: update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
 
     - name: Set JAVA_HOME environment variable
@@ -41,8 +41,7 @@
         line: 'JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64'
         create: yes
 
-
-
+     
 
 # NEXUS SERVER
 - name: Install Nexus Repository Manager on Ubuntu with Java 17
