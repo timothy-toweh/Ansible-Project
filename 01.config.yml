@@ -159,6 +159,16 @@
         msg: "{{ nexus_start_test.stdout }}\n{{ nexus_start_test.stderr }}"
 
     - name: Gather Nexus log file
+      command: ls -l /opt/nexus/logs/
+      register: nexus_log_file_list
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus log file list
+      debug:
+        msg: "{{ nexus_log_file_list.stdout }}"
+
+    - name: Gather Nexus log file
       command: cat /opt/nexus/logs/nexus.log
       register: nexus_log_file
       failed_when: false
@@ -208,6 +218,16 @@
     - name: Print Java version
       debug:
         msg: "{{ java_version_output.stdout }}\n{{ java_version_output.stderr }}"
+
+    - name: Check if JAVA_HOME is set in the environment
+      command: echo $JAVA_HOME
+      register: java_home_env
+      failed_when: false
+      changed_when: false
+
+    - name: Print JAVA_HOME environment variable
+      debug:
+        msg: "JAVA_HOME environment variable: {{ java_home_env.stdout }}"
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
