@@ -57,7 +57,7 @@
 
     - name: Ensure nexus user owns the Nexus directory
       file:
-        path: /opt/nexus-3.37.3-02
+        path: /opt/nexus
         state: directory
         owner: nexus
         group: nexus
@@ -90,8 +90,28 @@
         name: nexus
         enabled: yes
         state: started
+      ignore_errors: yes
+      register: nexus_start
 
+    - name: Check Nexus service status
+      command: systemctl status nexus.service
+      register: nexus_service_status
+      ignore_errors: yes
 
+    - name: Debug Nexus service status
+      debug:
+        var: nexus_service_status.stdout
+
+    - name: Fetch detailed Nexus service logs
+      command: journalctl -xeu nexus.service --no-pager
+      register: nexus_service_logs
+      ignore_errors: yes
+
+    - name: Debug Nexus service logs
+      debug:
+        var: nexus_service_logs.stdout
+
+    
 # DEPLOY SERVERS
 - name: Configure deploy servers
   hosts: deploy
