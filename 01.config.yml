@@ -104,6 +104,28 @@
         name: nexus
         state: started
         enabled: yes
+      register: nexus_service_status
+      failed_when: "'failed' in nexus_service_status.stderr"
+
+    - name: Gather Nexus service status
+      command: systemctl status nexus.service
+      register: nexus_status
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus service status
+      debug:
+        msg: "{{ nexus_status.stdout }}"
+
+    - name: Gather Nexus service logs
+      command: journalctl -xeu nexus.service --no-pager
+      register: nexus_logs
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus service logs
+      debug:
+        msg: "{{ nexus_logs.stdout }}"
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
