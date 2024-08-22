@@ -1,41 +1,25 @@
 ---
-- name: Fetch the version from the build server
+- name: Get version from Maven
   hosts: n4
   become: yes
   tasks:
-    - name: Read version from file
-      slurp:
-        src: /tmp/version.txt
-      register: version_file_content
+    - name: Get version from Maven
+      command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
+      register: mvn_version_output
 
     - name: Set version fact
       set_fact:
-        version: "{{ version_file_content.content | b64decode | trim }}"
+        version: "{{ mvn_version_output.stdout.strip() }}"
 
-    - name: Save version fact for use in deploy
-      local_action:
-        module=copy
-        content="{{ version }}"
-        dest="/tmp/version.txt"
 
 - name: Deploy the WAR to the deploy servers
   hosts: deploy
   become: yes
   vars:
     nexus_url: "3.90.1.192:8081/nexus"  # Replace with your Nexus URL
+    version: "{{ lookup('env', 'VERSION') }}"  # Use environment variable or pass directly
 
   tasks:
-    - name: Fetch version from local file
-      local_action:
-        module=fetch
-        src=/tmp/version.txt
-        dest=/tmp/version.txt
-        flat=yes
-
-    - name: Set version from fetched file
-      set_fact:
-        version: "{{ lookup('file', '/tmp/version.txt') | trim }}"
-
     - name: Debug version
       debug:
         msg: "Artifact version is: {{ version }}"
