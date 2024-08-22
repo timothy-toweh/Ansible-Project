@@ -1,22 +1,53 @@
 ---
-- name: Deploy Maven artifact to Nexus
+- name: Upload artifact to Nexus Repository from Build Server
   hosts: n4
-  gather_facts: yes
+  become: yes
+
+  vars:
+    nexus_url: "http://n5:8081/nexus"  # Using the hostname n5 from the inventory
+    repository: "releases"
+    group_id: "com.web.cal"
+    artifact_id: "WebAppCal"
+    packaging: "war"
+    nexus_username: "admin"
+    nexus_password: "admin123"
+    artifact_path: "/home/ubuntu/workspace/ansible-project/target"
+  
   tasks:
-    - name: Install Maven (if not already installed)
-      become: yes
-      apt:
-        name: maven
-        state: present
-
-    - name: Ensure Maven project is up-to-date
-      command: mvn clean install
+    - name: Get version from pom.xml
+      command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
       args:
         chdir: /home/ubuntu/workspace/ansible-project
+      register: mvn_version_output
+    
+    - name: Set artifact version
+      set_fact:
+        artifact_version: "{{ mvn_version_output.stdout }}"
+    
+    - name: Check if the WAR file exists
+      stat:
+        path: "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      register: war_file_check
 
-    - name: Deploy artifact to Nexus using Maven
-      command: mvn deploy
-      args:
-        chdir: /home/ubuntu/workspace/ansible-project
-      environment:
-        MAVEN_OPTS: "-Dusername=admin -Dpassword=admin123"
+    - name: Fail if the WAR file does not exist
+      fail:
+        msg: "WAR file not found: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      when: not war_file_check.stat.exists
+
+    - name: Upload artifact to Nexus
+      uri:
+        url: "{{ nexus_url }}/service/local/artifact/maven/content"
+        method: POST
+        user: "{{ nexus_username }}"
+        password: "{{ nexus_password }}"
+        force_basic_auth: yes
+        body_format: form-multipart
+        body:
+          r: "{{ repository }}"
+          g: "{{ group_id }}"
+          a: "{{ artifact_id }}"
+          v: "{{ artifact_version }}"
+          p: "{{ packaging }}"
+          file: "{{ lookup('file', artifact_path + '/WebAppCal-' + artifact_version + '.war') }}"
+        status_code: 201
+      when: war_file_check.stat.exists
