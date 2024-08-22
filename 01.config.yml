@@ -19,7 +19,7 @@
 
 # NEXUS SERVER
 - name: Deploy and Configure Nexus
-  hosts: nexus_servers
+  hosts: n5
   become: yes
   tasks:
     # Existing setup tasks
