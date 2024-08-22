@@ -7,16 +7,6 @@
       apt:
         update_cache: yes
 
-    - name: Remove other Java versions
-      apt:
-        name: "{{ item }}"
-        state: absent
-      loop:
-        - openjdk-11-jdk
-        - openjdk-17-jdk
-        - default-jdk
-      ignore_errors: yes
-
     - name: Install Java 8
       apt:
         name: openjdk-8-jdk
