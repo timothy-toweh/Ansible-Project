@@ -104,7 +104,8 @@
         name: nexus
         state: started
         enabled: yes
-      register: nexus_service_result
+      register: nexus_service_status
+      failed_when: false
 
     - name: Gather Nexus service status
       command: systemctl status nexus.service
@@ -126,6 +127,15 @@
       debug:
         msg: "{{ nexus_logs.stdout }}"
 
+    - name: Validate Nexus service file permissions
+      stat:
+        path: /etc/systemd/system/nexus.service
+      register: nexus_service_file
+      changed_when: false
+
+    - name: Print Nexus service file permissions
+      debug:
+        msg: "Nexus service file permissions: {{ nexus_service_file.stat }}"
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
