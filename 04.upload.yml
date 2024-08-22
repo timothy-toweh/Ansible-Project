@@ -14,7 +14,7 @@
 
     - name: Upload WAR to Nexus
       uri:
-        url: "http://{{ hostvars['nexus'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        url: "http://{{ hostvars['n5'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
         method: POST
         user: "admin"  
         password: "admin123"  
