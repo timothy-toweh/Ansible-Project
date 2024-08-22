@@ -18,107 +18,85 @@
         state: present
 
 # NEXUS SERVER
-- name: Deploy and Configure Nexus
-  hosts: n5
-  become: yes
+- name: Install and configure Nexus Repository Manager
+  hosts: n5  
+  become: yes  
+
   tasks:
-    - name: Gather facts
-      ansible.builtin.setup:
-
-    - name: Create Nexus user
-      ansible.builtin.user:
-        name: nexus
+    - name: Install required packages
+      apt: 
+        name: 
+          - openjdk-11-jdk  
         state: present
+        update_cache: yes
 
-    - name: Download Nexus
-      ansible.builtin.get_url:
-        url: "https://download.sonatype.com/nexus/professional-bundle/nexus-professional-2.15.1-02-bundle.tar.gz"
-        dest: /tmp/nexus.tar.gz
+    - name: Create nexus user
+      user:
+        name: nexus
+        create_home: no
+        shell: /bin/bash
+
+    - name: Download Nexus Repository Manager
+      get_url:
+        url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+        dest: /tmp/nexus-latest-unix.tar.gz
 
     - name: Extract Nexus
-      ansible.builtin.unarchive:
-        src: /tmp/nexus.tar.gz
+      unarchive:
+        src: /tmp/nexus-latest-unix.tar.gz
         dest: /opt/
         remote_src: yes
-      register: extract_result
 
-    - name: List contents of /opt
-      ansible.builtin.command:
-        cmd: ls -l /opt
-      register: opt_contents
-      changed_when: false
-
-    - name: Debug /opt contents
-      ansible.builtin.debug:
-        var: opt_contents.stdout
-
-    - name: Remove old symbolic link if it exists
-      ansible.builtin.file:
-        path: /opt/nexus
-        state: absent
-      when: extract_result.changed
-
-    - name: Create symbolic link to Nexus
-      ansible.builtin.file:
-        src: "/opt/nexus-professional-2.15.1-02"
+    - name: Create a symbolic link for Nexus
+      file:
+        src: /opt/nexus-3.*
         dest: /opt/nexus
         state: link
-      when: extract_result.changed
 
-    - name: Ensure nexus user owns the Nexus directory
-      ansible.builtin.file:
-        path: "/opt/nexus"
+    - name: Set ownership for Nexus directory
+      file:
+        path: /opt/nexus
         owner: nexus
         group: nexus
         recurse: yes
-      when: extract_result.changed
+
+    - name: Create Nexus data directory
+      file:
+        path: /opt/sonatype-work
+        state: directory
+        owner: nexus
+        group: nexus
 
     - name: Set Nexus as a service
-      ansible.builtin.template:
-        src: nexus.service.j2
+      copy:
+        content: |
+          [Unit]
+          Description=Nexus Repository Manager
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=nexus
+          Group=nexus
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
         dest: /etc/systemd/system/nexus.service
-      notify: Reload systemd
+        mode: '0644'
 
-    - name: Debug all gathered facts
-      ansible.builtin.debug:
-        var: ansible_facts
-
-    - name: Reload systemd
-      ansible.builtin.systemd:
+    - name: Reload systemd to pick up the new Nexus service
+      systemd:
         daemon_reload: yes
 
     - name: Start Nexus service
-      ansible.builtin.systemd:
+      systemd:
         name: nexus
         state: started
         enabled: yes
 
-    - name: Check Nexus service status
-      ansible.builtin.command:
-        cmd: systemctl status nexus.service
-      register: nexus_status
-      failed_when: nexus_status.rc != 0
-      ignore_errors: yes
-
-    - name: Debug Nexus service status
-      ansible.builtin.debug:
-        msg: "{{ nexus_status.stdout }}"
-
-    - name: Fetch Nexus service logs
-      ansible.builtin.command:
-        cmd: journalctl -xeu nexus.service
-      register: nexus_logs
-      failed_when: nexus_logs.rc != 0
-      ignore_errors: yes
-
-    - name: Debug Nexus service logs
-      ansible.builtin.debug:
-        msg: "{{ nexus_logs.stdout }}"
-
-  handlers:
-    - name: Reload systemd
-      ansible.builtin.systemd:
-        daemon_reload: yes
 
 
 # DEPLOY SERVERS
