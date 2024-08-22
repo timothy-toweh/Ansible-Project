@@ -4,7 +4,7 @@
   become: yes
 
   vars:
-    nexus_url: "http://n5:8081/nexus"  # Using the hostname n5 from the inventory
+    nexus_url: "http://172.31.83.202:8081/nexus"  # Using the hostname n5 from the inventory
     repository: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
@@ -49,6 +49,7 @@
     - name: Print the beginning of the WAR file contents
       debug:
         msg: "{{ file_contents.stdout[:1000] }}"
+
 
     - name: Upload artifact to Nexus
       uri:
