@@ -1,65 +1,54 @@
 ---
-- hosts: n4
-  become: yes
+- name: Upload the latest artifact to Nexus repository
+  hosts: n4
+  gather_facts: no
+  tasks:
+    - name: Find the latest .war file in target directory
+      find:
+        paths: /home/ubuntu/workspace/ansible-project/target
+        patterns: "*.war"
+        recurse: no
+        file_type: file
+      register: found_artifacts
+
+    - name: Fail if no .war file found
+      fail:
+        msg: "No .war file found in the target directory."
+      when: found_artifacts.matched == 0
+
+    - name: Set the latest artifact file
+      set_fact:
+        latest_artifact: "{{ found_artifacts.files | sort(attribute='mtime', reverse=true) | first }}"
+
+    - name: Check the latest artifact path
+      debug:
+        msg: "Latest artifact path: {{ latest_artifact.path }}"
+
+    - name: Copy the latest artifact to Nexus server
+      delegate_to: n5
+      become: yes
+      block:
+        - name: Copy artifact to Nexus server
+          copy:
+            src: "{{ latest_artifact.path }}"
+            dest: /tmp/{{ latest_artifact.path | basename }}
+            mode: '0644'
+
+        - name: Upload artifact to Nexus repository
+          shell: |
+            curl -u "{{ nexus_username }}:{{ nexus_password }}" --upload-file /tmp/{{ latest_artifact.path | basename }} \
+            "{{ nexus_repo_url }}{{ latest_artifact.path | basename }}"
+          environment:
+            NEXUS_URL: "{{ nexus_repo_url }}"
+            NEXUS_USER: "{{ nexus_username }}"
+            NEXUS_PASS: "{{ nexus_password }}"
+
+        - name: Clean up temporary file on Nexus server
+          file:
+            path: /tmp/{{ latest_artifact.path | basename }}
+            state: absent
+
   vars:
     nexus_username: "admin"
     nexus_password: "admin123"
-    nexus_url: "http://{{ hostvars['n5'].ansible_host }}:8081"
-    repository_name: "maven-releases"  # Ensure this matches your Nexus repository name
-  tasks:
-    - name: Read the Maven version
-      shell: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout"
-      args:
-        chdir: /home/ubuntu/workspace/ansible-project
-      register: maven_version
-
-    - name: Set the version as a fact
-      set_fact:
-        version: "{{ maven_version.stdout.strip() }}"
-
-    - name: Debug the file path
-      debug:
-        msg: "File path: /home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
-
-    - name: Check if the file exists
-      stat:
-        path: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
-      register: file_stat
-
-    - name: Fail if the file does not exist
-      fail:
-        msg: "The file does not exist at the specified path: /home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
-      when: not file_stat.stat.exists
-
-    - name: Read the WAR file content
-      slurp:
-        src: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
-      register: war_file
-
-    - name: Debug file content length
-      debug:
-        msg: "WAR file content length: {{ war_file.content | length }}"
-
-    - name: Upload WAR to Nexus
-      uri:
-        url: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
-        method: PUT
-        user: "{{ nexus_username }}"
-        password: "{{ nexus_password }}"
-        force_basic_auth: yes
-        body_format: raw
-        body: "{{ war_file.content | b64decode }}"
-        status_code: 201
-        return_content: yes
-      register: response
-
-    - name: Debug response from Nexus
-      debug:
-        var: response
-
-    - name: Ensure successful upload
-      assert:
-        that:
-          - response.status == 201
-        fail_msg: "Upload failed: {{ response.status }} - {{ response.msg }}"
-        success_msg: "Upload successful"
+    nexus_repo_url: "http://n5:8081/browse/maven-releases/"
