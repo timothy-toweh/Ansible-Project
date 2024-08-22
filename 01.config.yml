@@ -74,9 +74,11 @@
           [Service]
           Type=forking
           User=nexus
+          Group=nexus
           ExecStart=/opt/nexus/bin/nexus start
           ExecStop=/opt/nexus/bin/nexus stop
           Restart=on-abort
+          LimitNOFILE=65536
 
           [Install]
           WantedBy=multi-user.target
@@ -112,18 +114,18 @@
         var: nexus_service_logs.stdout
 
     - name: Fix Nexus permissions if service fails
-      when: "'ExecStart=/opt/nexus/bin/nexus start' in nexus_service_logs.stdout"
       file:
-        path: /opt/nexus/bin/nexus
+        path: /opt/nexus
         owner: nexus
         group: nexus
-        mode: '0755'
+        recurse: yes
+      when: nexus_start is failed
 
     - name: Restart Nexus service after fixing permissions
-      when: "'ExecStart=/opt/nexus/bin/nexus start' in nexus_service_logs.stdout"
       systemd:
         name: nexus
-        state: restarted
+        state: started
+      when: nexus_start is failed
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
@@ -141,7 +143,7 @@
 
     - name: Download Apache Tomcat
       get_url:
-        url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.65/bin/apache-tomcat-9.0.65.tar.gz
+        url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.74/bin/apache-tomcat-9.0.74.tar.gz
         dest: /opt/tomcat.tar.gz
 
     - name: Extract Apache Tomcat
@@ -152,7 +154,7 @@
 
     - name: Create symbolic link for Tomcat
       file:
-        src: /opt/apache-tomcat-9.0.65
+        src: /opt/apache-tomcat-9.0.74
         dest: /opt/tomcat
         state: link
 
