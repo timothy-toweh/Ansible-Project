@@ -18,64 +18,81 @@
         state: present
 
 # NEXUS SERVER
-- name: Install and configure Nexus Repository Manager
+- name: Install Nexus Repository Manager on Ubuntu with Java 11
   hosts: n5
   become: yes
+  vars:
+    nexus_version: "3.43.1-01"
+    nexus_download_url: "https://download.sonatype.com/nexus/3/{{ nexus_version }}/nexus-{{ nexus_version }}-unix.tar.gz"
+    nexus_install_dir: "/opt/nexus"
+    nexus_data_dir: "/opt/sonatype-work"
+    nexus_service_file: "/etc/systemd/system/nexus.service"
+
   tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Java 11
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
     - name: Install required packages
       apt:
         name:
-          - openjdk-17-jdk
+          - wget
+          - tar
         state: present
-        update_cache: yes
 
-    - name: Create nexus user
-      user:
-        name: nexus
-        create_home: no
-        shell: /bin/bash
-
-    - name: Download Nexus Repository Manager
-      get_url:
-        url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
-        dest: /tmp/nexus-latest-unix.tar.gz
-
-    - name: Extract Nexus
-      unarchive:
-        src: /tmp/nexus-latest-unix.tar.gz
-        dest: /opt/
-        remote_src: yes
-
-    - name: Find the latest Nexus directory
-      shell: |
-        find /opt -maxdepth 1 -type d -name 'nexus-3.*' | sort -t '-' -k3,3V -k4,4V | tail -n 1
-      register: nexus_dir
-      changed_when: false
-
-    - name: Create a symbolic link for Nexus
+    - name: Create Nexus install directory
       file:
-        src: "{{ nexus_dir.stdout.strip() }}"
-        dest: /opt/nexus
-        state: link
-        force: yes
-
-    - name: Set ownership for Nexus directory
-      file:
-        path: /opt/nexus
+        path: "{{ nexus_install_dir }}"
         state: directory
-        recurse: yes
-        owner: nexus
-        group: nexus
+        mode: '0755'
+
+    - name: Download Nexus tarball
+      get_url:
+        url: "{{ nexus_download_url }}"
+        dest: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+
+    - name: Extract Nexus tarball
+      unarchive:
+        src: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        dest: "{{ nexus_install_dir }}"
+        remote_src: yes
 
     - name: Create Nexus data directory
       file:
-        path: /opt/sonatype-work
+        path: "{{ nexus_data_dir }}"
         state: directory
+        mode: '0755'
+
+    - name: Create Nexus user
+      user:
+        name: nexus
+        system: yes
+        shell: /sbin/nologin
+
+    - name: Set ownership of Nexus directories
+      file:
+        path: "{{ item }}"
         owner: nexus
         group: nexus
+        recurse: yes
+      loop:
+        - "{{ nexus_install_dir }}"
+        - "{{ nexus_data_dir }}"
 
-    - name: Set Nexus as a service
+    - name: Configure Nexus to run as Nexus user
+      lineinfile:
+        path: "{{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus.rc"
+        line: "run_as_user=\"nexus\""
+        create: yes
+
+    - name: Create Nexus systemd service file
       copy:
+        dest: "{{ nexus_service_file }}"
         content: |
           [Unit]
           Description=Nexus Repository Manager
@@ -85,17 +102,17 @@
           Type=forking
           User=nexus
           Group=nexus
-          Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-          ExecStart=/opt/nexus/bin/nexus start
-          ExecStop=/opt/nexus/bin/nexus stop
+          ExecStart={{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus start
+          ExecStop={{ nexus_install_dir }}/nexus-{{ nexus_version }}/bin/nexus stop
           Restart=on-failure
+          LimitNOFILE=65536
+          LimitNPROC=2048
+          LimitMEMLOCK=infinity
 
           [Install]
           WantedBy=multi-user.target
-        dest: /etc/systemd/system/nexus.service
-        mode: '0644'
 
-    - name: Reload systemd to pick up the new Nexus service
+    - name: Reload systemd configuration
       systemd:
         daemon_reload: yes
 
@@ -104,130 +121,12 @@
         name: nexus
         state: started
         enabled: yes
-      register: nexus_service_status
-      failed_when: false
 
-    - name: Gather Nexus service status
-      command: systemctl status nexus.service
-      register: nexus_status
-      failed_when: false
-      changed_when: false
+    - name: Clean up tarball
+      file:
+        path: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        state: absent
 
-    - name: Print Nexus service status
-      debug:
-        msg: "{{ nexus_status.stdout }}"
-
-    - name: Gather Nexus service logs
-      command: journalctl -xeu nexus.service --no-pager
-      register: nexus_logs
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus service logs
-      debug:
-        msg: "{{ nexus_logs.stdout }}"
-
-    - name: Validate Nexus service file permissions
-      stat:
-        path: /etc/systemd/system/nexus.service
-      register: nexus_service_file
-      changed_when: false
-
-    - name: Print Nexus service file permissions
-      debug:
-        msg: "Nexus service file permissions: {{ nexus_service_file.stat }}"
-
-    - name: Check Nexus startup script
-      stat:
-        path: /opt/nexus/bin/nexus
-      register: nexus_start_script
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus startup script status
-      debug:
-        msg: "Nexus startup script status: {{ nexus_start_script.stat }}"
-
-    - name: Test Nexus startup manually
-      command: sudo -u nexus /opt/nexus/bin/nexus start
-      register: nexus_start_test
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus startup test result
-      debug:
-        msg: "{{ nexus_start_test.stdout }}\n{{ nexus_start_test.stderr }}"
-
-    - name: Gather Nexus log file
-      command: ls -l /opt/nexus/logs/
-      register: nexus_log_file_list
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus log file list
-      debug:
-        msg: "{{ nexus_log_file_list.stdout }}"
-
-    - name: Gather Nexus log file
-      command: cat /opt/nexus/logs/nexus.log
-      register: nexus_log_file
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus log file
-      debug:
-        msg: "{{ nexus_log_file.stdout }}"
-
-    - name: Validate nexus.properties file
-      stat:
-        path: /opt/nexus/etc/nexus-default.properties
-      register: nexus_properties_file
-      failed_when: false
-      changed_when: false
-
-    - name: Print nexus.properties file status
-      debug:
-        msg: "Nexus properties file status: {{ nexus_properties_file.stat }}"
-
-    - name: Validate Nexus service file
-      command: cat /etc/systemd/system/nexus.service
-      register: nexus_service_file_content
-      failed_when: false
-      changed_when: false
-
-    - name: Print Nexus service file content
-      debug:
-        msg: "{{ nexus_service_file_content.stdout }}"
-
-    - name: Check available Java versions
-      command: update-java-alternatives --display
-      register: java_versions
-      failed_when: false
-      changed_when: false
-
-    - name: Print available Java versions
-      debug:
-        msg: "{{ java_versions.stdout }}"
-
-    - name: Ensure correct Java version is being used
-      command: java -version
-      register: java_version_output
-      failed_when: false
-      changed_when: false
-
-    - name: Print Java version
-      debug:
-        msg: "{{ java_version_output.stdout }}\n{{ java_version_output.stderr }}"
-
-    - name: Check if JAVA_HOME is set in the environment
-      command: echo $JAVA_HOME
-      register: java_home_env
-      failed_when: false
-      changed_when: false
-
-    - name: Print JAVA_HOME environment variable
-      debug:
-        msg: "JAVA_HOME environment variable: {{ java_home_env.stdout }}"
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
