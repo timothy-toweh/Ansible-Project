@@ -79,17 +79,19 @@
         dest: /etc/systemd/system/nexus.service
       notify: Reload systemd
 
+    - name: Debug all gathered facts
+      ansible.builtin.debug:
+        var: ansible_facts
+
     - name: Reload systemd
       ansible.builtin.systemd:
         daemon_reload: yes
-      when: ansible_facts['ansible_os_family'] == "Debian"  # Adjust if necessary
 
     - name: Start Nexus service
       ansible.builtin.systemd:
         name: nexus
         state: started
         enabled: yes
-      register: nexus_service_status
 
     - name: Check Nexus service status
       ansible.builtin.command:
@@ -112,6 +114,11 @@
     - name: Debug Nexus service logs
       ansible.builtin.debug:
         msg: "{{ nexus_logs.stdout }}"
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
 
 
 # DEPLOY SERVERS
