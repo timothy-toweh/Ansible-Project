@@ -30,7 +30,6 @@
      
 
 #NEXUS SERVER
----
 - name: Install Nexus Repository Manager on Ubuntu with Java 11
   hosts: all
   become: yes
