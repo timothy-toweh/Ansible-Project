@@ -21,7 +21,6 @@
 - name: Install and configure Nexus Repository Manager
   hosts: n5
   become: yes
-
   tasks:
     - name: Install required packages
       apt:
@@ -136,6 +135,58 @@
     - name: Print Nexus service file permissions
       debug:
         msg: "Nexus service file permissions: {{ nexus_service_file.stat }}"
+
+    - name: Check Nexus startup script
+      stat:
+        path: /opt/nexus/bin/nexus
+      register: nexus_start_script
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus startup script status
+      debug:
+        msg: "Nexus startup script status: {{ nexus_start_script.stat }}"
+
+    - name: Test Nexus startup manually
+      command: sudo -u nexus /opt/nexus/bin/nexus start
+      register: nexus_start_test
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus startup test result
+      debug:
+        msg: "{{ nexus_start_test.stdout }}\n{{ nexus_start_test.stderr }}"
+
+    - name: Gather Nexus log file
+      command: cat /opt/nexus/logs/nexus.log
+      register: nexus_log_file
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus log file
+      debug:
+        msg: "{{ nexus_log_file.stdout }}"
+
+    - name: Validate nexus.properties file
+      stat:
+        path: /opt/nexus/etc/nexus-default.properties
+      register: nexus_properties_file
+      failed_when: false
+      changed_when: false
+
+    - name: Print nexus.properties file status
+      debug:
+        msg: "Nexus properties file status: {{ nexus_properties_file.stat }}"
+
+    - name: Validate Nexus service file
+      command: cat /etc/systemd/system/nexus.service
+      register: nexus_service_file_content
+      failed_when: false
+      changed_when: false
+
+    - name: Print Nexus service file content
+      debug:
+        msg: "{{ nexus_service_file_content.stdout }}"
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
