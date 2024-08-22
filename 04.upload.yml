@@ -1,10 +1,10 @@
 ---
 - name: Upload artifact to Nexus Repository from Build Server
   hosts: n4
-  become: yes
+  become: true
 
   vars:
-    nexus_url: "http://3.90.1.192:8081/nexus"  
+    nexus_url: "http://3.90.1.192:8081/nexus"
     repository: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
@@ -37,6 +37,20 @@
       fail:
         msg: "WAR file not found: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
       when: not war_file_check.stat.exists
+
+    - name: Debug file path
+      debug:
+        msg: "Path to WAR file: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      when: war_file_check.stat.exists
+
+    - name: Ensure file is readable
+      command: ls -l "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      register: file_check
+      ignore_errors: yes
+
+    - name: Print file check result
+      debug:
+        var: file_check.stdout
 
     - name: Upload artifact to Nexus
       uri:
