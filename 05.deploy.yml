@@ -1,9 +1,19 @@
 ---
-- name: Get version from Maven
-  hosts: n4
+- name: Deploy WAR to servers
+  hosts: deploy
   become: yes
+  vars:
+    build_server: n4  # Adjust if the build server's inventory alias is different
+    nexus_url: "http://3.90.1.192:8081/nexus"
+    repository: "releases"
+    group_id: "com.web.cal"
+    artifact_id: "WebAppCal"
+    packaging: "war"
+    deploy_path: "/opt/tomcat/webapps/WebAppCal.war"
+
   tasks:
-    - name: Get version from Maven
+    - name: Gather version from build server
+      delegate_to: "{{ build_server }}"
       command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
       register: mvn_version_output
 
@@ -11,24 +21,15 @@
       set_fact:
         version: "{{ mvn_version_output.stdout.strip() }}"
 
-
-- name: Deploy the WAR to the deploy servers
-  hosts: deploy
-  become: yes
-  vars:
-    nexus_url: "3.90.1.192:8081/nexus"  # Replace with your Nexus URL
-    version: "{{ lookup('env', 'VERSION') }}"  # Use environment variable or pass directly
-
-  tasks:
     - name: Debug version
       debug:
         msg: "Artifact version is: {{ version }}"
 
     - name: Download WAR from Nexus
       get_url:
-        url: "http://{{ nexus_url }}/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
-        dest: "/opt/tomcat/webapps/WebAppCal.war"
-        force: yes  # Overwrite the file if it already exists
+        url: "{{ nexus_url }}/repository/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.{{ packaging }}"
+        dest: "{{ deploy_path }}"
+        force: yes
 
     - name: Stop Tomcat service
       shell: "/opt/tomcat/bin/shutdown.sh"
