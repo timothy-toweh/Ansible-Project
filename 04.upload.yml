@@ -22,8 +22,12 @@
     
     - name: Set artifact version
       set_fact:
-        artifact_version: "{{ mvn_version_output.stdout }}"
-    
+        artifact_version: "{{ mvn_version_output.stdout.strip() }}"
+
+    - name: Print artifact version
+      debug:
+        msg: "Artifact version is: {{ artifact_version }}"
+
     - name: Check if the WAR file exists
       stat:
         path: "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
@@ -33,6 +37,18 @@
       fail:
         msg: "WAR file not found: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
       when: not war_file_check.stat.exists
+
+    - name: Print the full path of the WAR file
+      debug:
+        msg: "Full path to WAR file: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+
+    - name: Read the WAR file to ensure it's accessible
+      command: cat "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      register: file_contents
+
+    - name: Print the beginning of the WAR file contents
+      debug:
+        msg: "{{ file_contents.stdout[:1000] }}"
 
     - name: Upload artifact to Nexus
       uri:
@@ -48,6 +64,6 @@
           a: "{{ artifact_id }}"
           v: "{{ artifact_version }}"
           p: "{{ packaging }}"
-          file: "{{ lookup('file', artifact_path + '/WebAppCal-' + artifact_version + '.war') }}"
+          file: "@{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
         status_code: 201
       when: war_file_check.stat.exists
