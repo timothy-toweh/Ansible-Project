@@ -41,7 +41,7 @@
 
     - name: Create symbolic link to Nexus
       ansible.builtin.file:
-        src: /opt/nexus-<version>
+        src: /opt/nexus-2.15.1-02
         dest: /opt/nexus
         state: link
 
