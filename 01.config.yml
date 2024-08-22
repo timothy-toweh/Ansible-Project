@@ -18,7 +18,6 @@
         state: present
 
 # NEXUS SERVER
----
 - name: Install and configure Nexus Repository Manager
   hosts: n5
   become: yes
