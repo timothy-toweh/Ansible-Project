@@ -1,5 +1,11 @@
+---
 - hosts: n4
   become: yes
+  vars:
+    nexus_username: "admin"
+    nexus_password: "admin123"
+    nexus_url: "http://{{ hostvars['n5'].ansible_host }}:8081"
+    repository_name: "maven-releases"  # Adjust this as needed
   tasks:
     - name: Read the Maven version
       shell: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout"
@@ -9,29 +15,40 @@
 
     - name: Set the version as a fact
       set_fact:
-        version: "{{ maven_version.stdout }}"
+        version: "{{ maven_version.stdout.strip() }}"
+
+    - name: Debug the URL for uploading
+      debug:
+        msg: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
 
     - name: Upload WAR to Nexus
       uri:
-        url: "http://{{ hostvars['n5'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        url: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
         method: POST
-        user: "admin"  
-        password: "admin123"  
+        user: "{{ nexus_username }}"
+        password: "{{ nexus_password }}"
         force_basic_auth: yes
         body_format: form-multipart
         body:
-          r: "releases"
+          r: "{{ repository_name }}"
           hasPom: 'false'
           e: 'war'
           g: "com.web.cal"
           a: "WebAppCal"
           v: "{{ version }}"
           p: 'war'
-          file: "/home/ubuntu/workspace/ansible-project/target/WebAppCal-{{ version }}.war"
+          file: "@{{ playbook_dir }}/target/WebAppCal-{{ version }}.war"
         status_code: 201
-        return_content: yes  # To capture response content for debugging
+        return_content: yes
       register: response
 
     - name: Debug response from Nexus
       debug:
         var: response
+
+    - name: Ensure successful upload
+      assert:
+        that:
+          - response.status == 201
+        fail_msg: "Upload failed: {{ response.status }} - {{ response.msg }}"
+        success_msg: "Upload successful"
