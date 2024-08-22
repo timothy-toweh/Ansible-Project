@@ -4,7 +4,7 @@
   become: yes
 
   vars:
-    nexus_url: "http://172.31.83.202:8081/nexus"  # Using the hostname n5 from the inventory
+    nexus_url: "http://172.31.83.202:8081/nexus"  
     repository: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
