@@ -52,6 +52,7 @@
         src: /opt/nexus-3.*
         dest: /opt/nexus
         state: link
+        force: yes
 
     - name: Set ownership for Nexus directory
       file:
