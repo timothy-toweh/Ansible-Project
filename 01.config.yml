@@ -7,15 +7,23 @@
       apt:
         update_cache: yes
 
-    - name: Install Java
+    - name: Install Java 8
       apt:
-        name: openjdk-11-jdk
+        name: openjdk-8-jdk
         state: present
 
     - name: Install Maven
       apt:
         name: maven
         state: present
+
+    - name: Set Java 8 as the default
+      update-alternatives:
+        name: java
+        path: /usr/lib/jvm/java-8-openjdk-amd64/bin/java
+        priority: 1081
+        state: link
+
 
 # NEXUS SERVER
 - name: Install Nexus Repository Manager on Ubuntu with Java 17
