@@ -4,7 +4,7 @@
   become: yes
 
   vars:
-    nexus_url: "172.31.91.47:8081/nexus/repository/releases"  
+    nexus_url: "172.31.91.47:8081/nexus"  
     repository: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
@@ -37,19 +37,6 @@
       fail:
         msg: "WAR file not found: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
       when: not war_file_check.stat.exists
-
-    - name: Print the full path of the WAR file
-      debug:
-        msg: "Full path to WAR file: {{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
-
-    - name: Read the WAR file to ensure it's accessible
-      command: cat "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
-      register: file_contents
-
-    - name: Print the beginning of the WAR file contents
-      debug:
-        msg: "{{ file_contents.stdout[:1000] }}"
-
 
     - name: Upload artifact to Nexus
       uri:
