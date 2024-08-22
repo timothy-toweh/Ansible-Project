@@ -40,7 +40,7 @@
 
     - name: Upload artifact to Nexus
       uri:
-        url: "{{ nexus_url }}/repositories/releases"
+        url: "{{ nexus_url }}/repository/releases"
         method: POST
         user: "{{ nexus_username }}"
         password: "{{ nexus_password }}"
