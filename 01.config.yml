@@ -71,6 +71,44 @@
         src: nexus.service.j2
         dest: /etc/systemd/system/nexus.service
       notify: Reload systemd
+    
+    - name: Check Nexus service status
+      ansible.builtin.command:
+        cmd: systemctl status nexus.service
+      register: nexus_service_status
+      failed_when: false
+
+    - name: Debug Nexus service status
+      ansible.builtin.debug:
+        var: nexus_service_status.stdout
+
+    - name: Fetch Nexus service logs
+      ansible.builtin.command:
+        cmd: journalctl -xeu nexus.service
+      register: nexus_service_logs
+      failed_when: false
+
+    - name: Debug Nexus service logs
+      ansible.builtin.debug:
+        var: nexus_service_logs.stdout
+
+    - name: Check if Nexus directory exists
+      ansible.builtin.stat:
+        path: /opt/nexus
+      register: nexus_dir_stat
+
+    - name: Debug Nexus directory status
+      ansible.builtin.debug:
+        var: nexus_dir_stat
+
+    - name: Check if Nexus binary exists
+      ansible.builtin.stat:
+        path: /opt/nexus/bin/nexus
+      register: nexus_bin_stat
+
+    - name: Debug Nexus binary status
+      ansible.builtin.debug:
+        var: nexus_bin_stat
 
     - name: Reload systemd
       ansible.builtin.systemd:
