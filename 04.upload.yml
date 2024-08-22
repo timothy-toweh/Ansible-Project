@@ -4,8 +4,8 @@
   become: true
 
   vars:
-    nexus_url: "http://3.90.1.192:8081/nexus"
-    repository: "releases"
+    nexus_url: "3.90.1.192:8081/nexus"
+    repository: "Releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
     packaging: "war"
