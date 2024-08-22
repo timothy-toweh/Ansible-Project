@@ -18,114 +18,87 @@
         state: present
 
 # NEXUS SERVER
-- name: Configure Nexus server
-  hosts: n5
-  become: true
+- name: Deploy and Configure Nexus
+  hosts: nexus_servers
+  become: yes
   tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-
-    - name: Install Java
-      apt:
-        name: openjdk-11-jdk
-        state: present
-
-    - name: Create Nexus User
-      user:
+    # Existing setup tasks
+    - name: Create Nexus user
+      ansible.builtin.user:
         name: nexus
         state: present
-        shell: /bin/bash
-        create_home: yes
 
     - name: Download Nexus
-      get_url:
-        url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
-        dest: /opt/nexus.tar.gz
+      ansible.builtin.get_url:
+        url: "http://example.com/nexus.tar.gz"
+        dest: /tmp/nexus.tar.gz
 
     - name: Extract Nexus
-      unarchive:
-        src: /opt/nexus.tar.gz
-        dest: /opt
+      ansible.builtin.unarchive:
+        src: /tmp/nexus.tar.gz
+        dest: /opt/
         remote_src: yes
 
     - name: Create symbolic link to Nexus
-      file:
-        src: /opt/nexus-3.37.3-02
+      ansible.builtin.file:
+        src: /opt/nexus-<version>
         dest: /opt/nexus
         state: link
 
     - name: Ensure nexus user owns the Nexus directory
-      file:
+      ansible.builtin.file:
         path: /opt/nexus
-        state: directory
         owner: nexus
         group: nexus
         recurse: yes
 
     - name: Set Nexus as a service
-      copy:
+      ansible.builtin.template:
+        src: nexus.service.j2
         dest: /etc/systemd/system/nexus.service
-        content: |
-          [Unit]
-          Description=nexus service
-          After=network.target
+      notify: Reload systemd
 
-          [Service]
-          Type=forking
-          User=nexus
-          Group=nexus
-          ExecStart=/opt/nexus/bin/nexus start
-          ExecStop=/opt/nexus/bin/nexus stop
-          Restart=on-abort
-          LimitNOFILE=65536
-
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Reload systemd daemon
-      systemd:
+    # New tasks for troubleshooting and validation
+    - name: Reload systemd
+      ansible.builtin.systemd:
         daemon_reload: yes
+      when: ansible_facts['ansible_systemd'] is defined
 
-    - name: Enable and start Nexus service
-      systemd:
+    - name: Start Nexus service
+      ansible.builtin.systemd:
         name: nexus
-        enabled: yes
         state: started
-      ignore_errors: yes
-      register: nexus_start
+        enabled: yes
+      register: nexus_service_status
+      failed_when: nexus_service_status.failed
 
     - name: Check Nexus service status
-      command: systemctl status nexus.service
-      register: nexus_service_status
+      ansible.builtin.command:
+        cmd: systemctl status nexus.service
+      register: nexus_status
+      failed_when: nexus_status.rc != 0
+      ignore_errors: yes
+
+    - name: Fetch Nexus service logs
+      ansible.builtin.command:
+        cmd: journalctl -xeu nexus.service
+      register: nexus_logs
+      failed_when: nexus_logs.rc != 0
       ignore_errors: yes
 
     - name: Debug Nexus service status
-      debug:
-        var: nexus_service_status.stdout
-
-    - name: Fetch detailed Nexus service logs
-      command: journalctl -xeu nexus.service --no-pager
-      register: nexus_service_logs
-      ignore_errors: yes
+      ansible.builtin.debug:
+        msg: "{{ nexus_status.stdout }}"
 
     - name: Debug Nexus service logs
-      debug:
-        var: nexus_service_logs.stdout
+      ansible.builtin.debug:
+        msg: "{{ nexus_logs.stdout }}"
 
-    - name: Fix Nexus permissions if service fails
-      file:
-        path: /opt/nexus
-        owner: nexus
-        group: nexus
-        recurse: yes
-      when: nexus_start is failed
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
 
-    - name: Restart Nexus service after fixing permissions
-      systemd:
-        name: nexus
-        state: started
-      when: nexus_start is failed
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
