@@ -40,18 +40,14 @@
 
     - name: Upload artifact to Nexus
       uri:
-        url: "{{ nexus_url }}/repository/releases"
-        method: POST
+        url: "{{ nexus_url }}/content/repositories/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ artifact_version }}/{{ artifact_id }}-{{ artifact_version }}.{{ packaging }}"
+        method: PUT
         user: "{{ nexus_username }}"
         password: "{{ nexus_password }}"
         force_basic_auth: yes
-        body_format: form-multipart
-        body:
-          r: "{{ repository }}"
-          g: "{{ group_id }}"
-          a: "{{ artifact_id }}"
-          v: "{{ artifact_version }}"
-          p: "{{ packaging }}"
-          file: "@{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+        body_format: raw
+        body: "{{ lookup('file', artifact_path + '/WebAppCal-' + artifact_version + '.war') }}"
+        headers:
+          Content-Type: application/octet-stream
         status_code: 201
       when: war_file_check.stat.exists
