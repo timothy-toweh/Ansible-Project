@@ -29,13 +29,14 @@
 
      
 
-# NEXUS SERVER
-- name: Install Nexus Repository Manager on Ubuntu with Java 17
+#NEXUS SERVER
+---
+- name: Install Nexus Repository Manager on Ubuntu with Java 11
   hosts: all
   become: yes
   vars:
-    nexus_version: "3.71.0-06"  # Updated version
-    nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-unix.tar.gz"
+    nexus_version: "2.14.18-01"  # Updated version
+    nexus_download_url: "https://download.sonatype.com/nexus/2/nexus-{{ nexus_version }}-unix.tar.gz"
     nexus_install_dir: "/opt/nexus-{{ nexus_version }}"
     nexus_data_dir: "/opt/sonatype-work"
     nexus_service_file: "/etc/systemd/system/nexus.service"
@@ -45,9 +46,9 @@
       apt:
         update_cache: yes
 
-    - name: Install Java 17
+    - name: Install Java 11
       apt:
-        name: openjdk-17-jdk
+        name: openjdk-11-jdk
         state: present
 
     - name: Install required packages
@@ -98,8 +99,8 @@
 
     - name: Configure Nexus to run as Nexus user
       lineinfile:
-        path: "{{ nexus_install_dir }}/bin/nexus.rc"
-        line: "run_as_user=\"nexus\""
+        path: "{{ nexus_install_dir }}/conf/nexus.properties"
+        line: "nexus-work={{ nexus_data_dir }}"
         create: yes
 
     - name: Create Nexus systemd service file

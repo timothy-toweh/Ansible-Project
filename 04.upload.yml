@@ -1,54 +1,22 @@
 ---
-- name: Upload the latest artifact to Nexus repository
+- name: Deploy Maven artifact to Nexus
   hosts: n4
-  gather_facts: no
+  gather_facts: yes
   tasks:
-    - name: Find the latest .war file in target directory
-      find:
-        paths: /home/ubuntu/workspace/ansible-project/target
-        patterns: "*.war"
-        recurse: no
-        file_type: file
-      register: found_artifacts
-
-    - name: Fail if no .war file found
-      fail:
-        msg: "No .war file found in the target directory."
-      when: found_artifacts.matched == 0
-
-    - name: Set the latest artifact file
-      set_fact:
-        latest_artifact: "{{ found_artifacts.files | sort(attribute='mtime', reverse=true) | first }}"
-
-    - name: Check the latest artifact path
-      debug:
-        msg: "Latest artifact path: {{ latest_artifact.path }}"
-
-    - name: Copy the latest artifact to Nexus server
-      delegate_to: n5
+    - name: Install Maven (if not already installed)
       become: yes
-      block:
-        - name: Copy artifact to Nexus server
-          copy:
-            src: "{{ latest_artifact.path }}"
-            dest: /tmp/{{ latest_artifact.path | basename }}
-            mode: '0644'
+      apt:
+        name: maven
+        state: present
 
-        - name: Upload artifact to Nexus repository
-          shell: |
-            curl -u "{{ nexus_username }}:{{ nexus_password }}" --upload-file /tmp/{{ latest_artifact.path | basename }} \
-            "{{ nexus_repo_url }}{{ latest_artifact.path | basename }}"
-          environment:
-            NEXUS_URL: "{{ nexus_repo_url }}"
-            NEXUS_USER: "{{ nexus_username }}"
-            NEXUS_PASS: "{{ nexus_password }}"
+    - name: Ensure Maven project is up-to-date
+      command: mvn clean install
+      args:
+        chdir: /home/ubuntu/workspace/ansible-project
 
-        - name: Clean up temporary file on Nexus server
-          file:
-            path: /tmp/{{ latest_artifact.path | basename }}
-            state: absent
-
-  vars:
-    nexus_username: "admin"
-    nexus_password: "admin123"
-    nexus_repo_url: "http://n5:8081/browse/maven-releases/"
+    - name: Deploy artifact to Nexus using Maven
+      command: mvn deploy
+      args:
+        chdir: /home/ubuntu/workspace/ansible-project
+      environment:
+        MAVEN_OPTS: "-Dusername=admin -Dpassword=admin123"
