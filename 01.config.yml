@@ -17,7 +17,7 @@
         name: maven
         state: present
 
-# NEXUS SERVER
+#NEXUS SERVER
 - name: Configure Nexus server
   hosts: n5
   become: true
@@ -49,6 +49,20 @@
         dest: /opt
         remote_src: yes
 
+    - name: Create symbolic link to Nexus
+      file:
+        src: /opt/nexus-3.37.3-02
+        dest: /opt/nexus
+        state: link
+
+    - name: Ensure nexus user owns the Nexus directory
+      file:
+        path: /opt/nexus-3.37.3-02
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+
     - name: Set Nexus as a service
       copy:
         dest: /etc/systemd/system/nexus.service
@@ -60,8 +74,8 @@
           [Service]
           Type=forking
           User=nexus
-          ExecStart=/opt/nexus-3.37.3-02/bin/nexus start
-          ExecStop=/opt/nexus-3.37.3-02/bin/nexus stop
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
           Restart=on-abort
 
           [Install]
@@ -76,6 +90,7 @@
         name: nexus
         enabled: yes
         state: started
+
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
