@@ -22,7 +22,9 @@
   hosts: n5
   become: yes
   tasks:
-    # Existing setup tasks
+    - name: Gather facts
+      ansible.builtin.setup:
+
     - name: Create Nexus user
       ansible.builtin.user:
         name: nexus
@@ -32,18 +34,27 @@
       ansible.builtin.get_url:
         url: "https://download.sonatype.com/nexus/professional-bundle/nexus-professional-2.15.1-02-bundle.tar.gz"
         dest: /tmp/nexus.tar.gz
+      register: download_result
 
     - name: Extract Nexus
       ansible.builtin.unarchive:
         src: /tmp/nexus.tar.gz
         dest: /opt/
         remote_src: yes
+      register: extract_result
+
+    - name: Remove old symbolic link if it exists
+      ansible.builtin.file:
+        path: /opt/nexus
+        state: absent
+      when: extract_result.changed
 
     - name: Create symbolic link to Nexus
       ansible.builtin.file:
-        src: /opt/nexus-2.15.1-02
+        src: /opt/nexus-2.15.1-02  # Ensure this matches the actual extracted directory name
         dest: /opt/nexus
         state: link
+      when: extract_result.changed
 
     - name: Ensure nexus user owns the Nexus directory
       ansible.builtin.file:
@@ -58,11 +69,9 @@
         dest: /etc/systemd/system/nexus.service
       notify: Reload systemd
 
-    # New tasks for troubleshooting and validation
     - name: Reload systemd
       ansible.builtin.systemd:
         daemon_reload: yes
-      when: ansible_facts['ansible_systemd'] is defined
 
     - name: Start Nexus service
       ansible.builtin.systemd:
@@ -70,7 +79,6 @@
         state: started
         enabled: yes
       register: nexus_service_status
-      failed_when: nexus_service_status.failed
 
     - name: Check Nexus service status
       ansible.builtin.command:
