@@ -48,14 +48,14 @@
         remote_src: yes
 
     - name: Find the latest Nexus directory
-      command: >
+      shell: |
         find /opt -maxdepth 1 -type d -name 'nexus-3.*' | sort -t '-' -k3,3V -k4,4V | tail -n 1
       register: nexus_dir
       changed_when: false
 
     - name: Create a symbolic link for Nexus
       file:
-        src: "{{ nexus_dir.stdout }}"
+        src: "{{ nexus_dir.stdout.strip() }}"
         dest: /opt/nexus
         state: link
         force: yes
@@ -104,7 +104,6 @@
         name: nexus
         state: started
         enabled: yes
-
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
