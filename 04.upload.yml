@@ -52,6 +52,11 @@
       debug:
         var: file_check.stdout
 
+    - name: Slurp WAR file content
+      slurp:
+        src: "{{ artifact_path }}/WebAppCal-{{ artifact_version }}.war"
+      register: slurped_file
+
     - name: Upload artifact to Nexus
       uri:
         url: "{{ nexus_url }}/content/repositories/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ artifact_version }}/{{ artifact_id }}-{{ artifact_version }}.{{ packaging }}"
@@ -60,7 +65,7 @@
         password: "{{ nexus_password }}"
         force_basic_auth: yes
         body_format: raw
-        body: "{{ lookup('file', artifact_path + '/WebAppCal-' + artifact_version + '.war') }}"
+        body: "{{ slurped_file.content | b64decode }}"
         headers:
           Content-Type: application/octet-stream
         status_code: 201
