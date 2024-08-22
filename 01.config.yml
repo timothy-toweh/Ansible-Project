@@ -35,7 +35,7 @@
   become: yes
   vars:
     nexus_version: "2.14.18-01"  # Updated version
-    nexus_download_url: "https://download.sonatype.com/nexus/2/nexus-{{ nexus_version }}-unix.tar.gz"
+    nexus_download_url: "https://download.sonatype.com/nexus/oss/nexus-{{ nexus_version }}-bundle.tar.gz"  # Correct URL
     nexus_install_dir: "/opt/nexus-{{ nexus_version }}"
     nexus_data_dir: "/opt/sonatype-work"
     nexus_service_file: "/etc/systemd/system/nexus.service"
@@ -66,11 +66,11 @@
     - name: Download Nexus tarball
       get_url:
         url: "{{ nexus_download_url }}"
-        dest: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        dest: "/tmp/nexus-{{ nexus_version }}-bundle.tar.gz"
 
     - name: Extract Nexus tarball
       unarchive:
-        src: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        src: "/tmp/nexus-{{ nexus_version }}-bundle.tar.gz"
         dest: "/opt"
         remote_src: yes
 
@@ -136,7 +136,7 @@
 
     - name: Clean up tarball
       file:
-        path: "/tmp/nexus-{{ nexus_version }}-unix.tar.gz"
+        path: "/tmp/nexus-{{ nexus_version }}-bundle.tar.gz"
         state: absent
 
 
