@@ -5,7 +5,7 @@
     nexus_username: "admin"
     nexus_password: "admin123"
     nexus_url: "http://{{ hostvars['n5'].ansible_host }}:8081"
-    repository_name: "maven-releases"  # Adjust this as needed
+    repository_name: "maven-releases"  # Ensure this matches your Nexus repository name
   tasks:
     - name: Read the Maven version
       shell: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout"
@@ -24,20 +24,12 @@
     - name: Upload WAR to Nexus
       uri:
         url: "{{ nexus_url }}/repository/{{ repository_name }}/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
-        method: POST
+        method: PUT  # Use PUT for Maven artifact uploads
         user: "{{ nexus_username }}"
         password: "{{ nexus_password }}"
         force_basic_auth: yes
-        body_format: form-multipart
-        body:
-          r: "{{ repository_name }}"
-          hasPom: 'false'
-          e: 'war'
-          g: "com.web.cal"
-          a: "WebAppCal"
-          v: "{{ version }}"
-          p: 'war'
-          file: "@{{ playbook_dir }}/target/WebAppCal-{{ version }}.war"
+        body_format: binary
+        body: "@{{ playbook_dir }}/target/WebAppCal-{{ version }}.war"
         status_code: 201
         return_content: yes
       register: response
