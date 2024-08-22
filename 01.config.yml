@@ -30,7 +30,7 @@
 
     - name: Download Nexus
       ansible.builtin.get_url:
-        url: "http://example.com/nexus.tar.gz"
+        url: "https://download.sonatype.com/nexus/professional-bundle/nexus-professional-2.15.1-02-bundle.tar.gz"
         dest: /tmp/nexus.tar.gz
 
     - name: Extract Nexus
