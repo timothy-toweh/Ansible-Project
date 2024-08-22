@@ -49,21 +49,6 @@
         dest: /opt
         remote_src: yes
 
-    - name: Set ownership for Nexus directories
-      file:
-        path: /opt/nexus-3.37.3-02
-        state: directory
-        owner: nexus
-        group: nexus
-        recurse: yes
-
-    - name: Set Nexus RUN_AS_USER in nexus.rc
-      lineinfile:
-        path: /opt/nexus-3.37.3-02/bin/nexus.rc
-        regexp: '^#RUN_AS_USER='
-        line: 'RUN_AS_USER=nexus'
-        state: present
-
     - name: Set Nexus as a service
       copy:
         dest: /etc/systemd/system/nexus.service
