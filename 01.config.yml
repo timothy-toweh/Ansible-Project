@@ -18,14 +18,15 @@
         state: present
 
 # NEXUS SERVER
+---
 - name: Install and configure Nexus Repository Manager
   hosts: n5
   become: yes
 
   tasks:
     - name: Install required packages
-      apt: 
-        name: 
+      apt:
+        name:
           - openjdk-11-jdk
         state: present
         update_cache: yes
@@ -47,11 +48,17 @@
         dest: /opt/
         remote_src: yes
 
+    - name: Find the latest Nexus directory
+      command: ls -d /opt/nexus-3.* | sort -V | tail -n 1
+      register: nexus_dir
+      changed_when: false
+
     - name: Create a symbolic link for Nexus
       file:
-        src: /opt/nexus-3.*
+        src: "{{ nexus_dir.stdout }}"
         dest: /opt/nexus
         state: link
+        force: yes
 
     - name: Set ownership for Nexus directory
       file:
@@ -97,6 +104,7 @@
         name: nexus
         state: started
         enabled: yes
+
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
