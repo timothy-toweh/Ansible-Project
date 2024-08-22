@@ -8,6 +8,14 @@
         dest: /home/ubuntu/workspace/ansible-project
 
     - name: Build the application using Maven
-      shell: "mvn clean package"
-      args:
-        chdir: /home/ubuntu/workspace/ansible-project
+      command: mvn clean package -X
+      register: mvn_output
+      ignore_errors: yes
+
+    - name: Display Maven output
+      debug:
+        msg: "{{ mvn_output.stdout }}"
+
+    - name: Display Maven error output
+      debug:
+        msg: "{{ mvn_output.stderr }}"
