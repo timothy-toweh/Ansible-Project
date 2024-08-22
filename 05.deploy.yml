@@ -1,11 +1,27 @@
 ---
 - hosts: deploy
   become: yes
+  vars:
+    nexus_url: "3.90.1.192:8081/nexus"  # Replace with your Nexus URL
+
   tasks:
+    - name: Get version from Maven
+      command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
+      register: mvn_version_output
+
+    - name: Set version variable
+      set_fact:
+        version: "{{ mvn_version_output.stdout.strip() }}"
+
+    - name: Debug version
+      debug:
+        msg: "Artifact version is: {{ version }}"
+
     - name: Download WAR from Nexus
       get_url:
-        url: "http://{{ hostvars['nexus'].ansible_host }}:8081/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
+        url: "http://{{ nexus_url }}/repository/releases/com/web/cal/WebAppCal/{{ version }}/WebAppCal-{{ version }}.war"
         dest: "/opt/tomcat/webapps/WebAppCal.war"
+        force: yes  # Overwrite the file if it already exists
 
     - name: Stop Tomcat service
       shell: "/opt/tomcat/bin/shutdown.sh"
