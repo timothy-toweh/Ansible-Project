@@ -51,17 +51,20 @@
 
     - name: Create symbolic link to Nexus
       ansible.builtin.file:
-        src: /opt/nexus-2.15.1-02  # Ensure this matches the actual extracted directory name
+        src: /opt/nexus-professional-2.15.1-02  # Ensure this matches the actual extracted directory name
         dest: /opt/nexus
         state: link
       when: extract_result.changed
 
     - name: Ensure nexus user owns the Nexus directory
       ansible.builtin.file:
-        path: /opt/nexus
+        path: "/opt/nexus"
         owner: nexus
         group: nexus
         recurse: yes
+      when:
+        - extract_result.changed
+        - ansible_facts['ansible_os_family'] == "Debian"  # Only apply this if the OS family is Debian/Ubuntu; adjust if needed
 
     - name: Set Nexus as a service
       ansible.builtin.template:
@@ -106,7 +109,6 @@
     - name: Reload systemd
       ansible.builtin.systemd:
         daemon_reload: yes
-
 
 # DEPLOY SERVERS
 - name: Configure deploy servers
