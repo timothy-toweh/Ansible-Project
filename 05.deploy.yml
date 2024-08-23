@@ -11,25 +11,7 @@
     packaging: "war"
     deploy_path: "/opt/tomcat/webapps/WebAppCal.war"
 
-  tasks:
-    - name: Gather version from build server
-      delegate_to: "{{ build_server }}"
-      command: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
-      register: mvn_version_output
-      failed_when: "'[ERROR]' in mvn_version_output.stderr"
 
-    - name: Set version fact
-      set_fact:
-        version: "{{ mvn_version_output.stdout.strip() }}"
-
-    - name: Debug version
-      debug:
-        msg: "Artifact version is: {{ version }}"
-
-    - name: Ensure version is valid
-      fail:
-        msg: "Version is not set correctly or is empty."
-      when: version is not defined or version == ""
 
     - name: Download WAR from Nexus
       get_url:
@@ -38,10 +20,6 @@
         force: yes
         timeout: 30  # Adjust as needed
       register: download_result
-
-    - name: Debug download result
-      debug:
-        msg: "Download result: {{ download_result }}"
       
     - name: Stop Tomcat service
       shell: "/opt/tomcat/bin/shutdown.sh"

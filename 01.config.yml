@@ -141,7 +141,7 @@
 
     - name: Install Java JDK
       apt:
-        name: openjdk-11-jdk
+        name: openjdk-8-jdk
         state: present
 
     - name: Download Apache Tomcat
@@ -175,7 +175,52 @@
         group: tomcat
         recurse: yes
 
-    - name: Start Tomcat service
-      shell: "/opt/tomcat/bin/startup.sh"
-      args:
-        chdir: /opt/tomcat/
+    - name: Ensure correct permissions on Tomcat scripts
+      file:
+        path: "{{ item }}"
+        mode: '0755'
+        owner: tomcat
+        group: tomcat
+      loop:
+        - /opt/tomcat/bin/startup.sh
+        - /opt/tomcat/bin/shutdown.sh
+
+    - name: Create Tomcat systemd service file
+      copy:
+        dest: /etc/systemd/system/tomcat.service
+        content: |
+          [Unit]
+          Description=Apache Tomcat Web Application Container
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=tomcat
+          Group=tomcat
+          Environment="JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+          Environment="CATALINA_PID=/opt/tomcat/temp/tomcat.pid"
+          Environment="CATALINA_HOME=/opt/tomcat"
+          Environment="CATALINA_BASE=/opt/tomcat"
+          Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+          Environment="JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom"
+          ExecStart=/opt/tomcat/bin/startup.sh
+          ExecStop=/opt/tomcat/bin/shutdown.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Start and enable Tomcat service
+      systemd:
+        name: tomcat
+        enabled: yes
+        state: started
+
+    - name: Remove the downloaded Tomcat tar.gz
+      file:
+        path: /opt/tomcat.tar.gz
+        state: absent
