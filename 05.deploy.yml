@@ -1,49 +1,31 @@
 ---
-- name: Deploy WAR file from Nexus to Tomcat
+- name: Deploy application
   hosts: deploy
+  become: yes
   vars:
-    nexus_url: "http://34.201.66.66:8081/nexus"
-    repo_id: "releases"
-    group_id: "com.web.cal"
-    artifact_id: "WebAppCal"
-    version: "0.0.6"  # Update this as needed or implement dynamic version fetching
-    tomcat_home: "/opt/tomcat"
-    deploy_dir: "{{ tomcat_home }}/webapps"
-    backup_dir: "/tmp/backup"
-    tmp_war_path: "/tmp/{{ artifact_id }}-{{ version }}.war"
+    artifact_url: "http://34.201.66.66:8081/nexus/content/repositories/releases/com/web/cal/WebAppCal/0.0.6/WebAppCal-0.0.6.war"
+    tomcat_webapps_dir: "/opt/tomcat/webapps"
+    local_artifact_path: "{{ tomcat_webapps_dir }}/WebAppCal-0.0.6.war"
 
   tasks:
-    
-    - name: Download WAR file from Nexus
+    - name: Download artifact from Nexus
       get_url:
-        url: "{{ nexus_url }}/content/repositories/releases/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.war"
-        dest: "{{ tmp_war_path }}"
+        url: "{{ artifact_url }}"
+        dest: "{{ local_artifact_path }}"
         mode: '0644'
 
-    - name: Ensure the WAR file is present on the remote hosts
-      stat:
-        path: "{{ tmp_war_path }}"
-      register: war_file_stat
+    - name: Ensure Tomcat webapps directory exists
+      file:
+        path: "{{ tomcat_webapps_dir }}"
+        state: directory
 
-    - name: Fail if the WAR file was not downloaded correctly
-      fail:
-        msg: "The WAR file could not be found at {{ tmp_war_path }}."
-      when: not war_file_stat.stat.exists
-
-    - name: Deploy WAR file to Tomcat
-      copy:
-        src: "{{ tmp_war_path }}"
-        dest: "{{ deploy_dir }}/{{ artifact_id }}.war"
-        owner: tomcat
-        group: tomcat
-        mode: '0644'
-
-    - name: Restart Tomcat service
+    - name: Restart Tomcat to deploy the new WAR
       service:
         name: tomcat
         state: restarted
 
-    - name: Clean up downloaded WAR file
+    - name: Clean up old artifacts (optional)
       file:
-        path: "{{ tmp_war_path }}"
+        path: "{{ tomcat_webapps_dir }}/WebAppCal-0.0.6.war"
         state: absent
+      when: ansible_date_time.iso8601 | to_datetime | regex_replace('T.*', '') != (ansible_date_time.iso8601 | to_datetime | regex_replace('T.*', ''))  # Example condition for cleanup
