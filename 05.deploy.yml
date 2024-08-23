@@ -1,31 +1,65 @@
 ---
-- name: Deploy WAR to servers
+- name: Deploy WAR file from Nexus to Tomcat
   hosts: deploy
-  become: yes
   vars:
-    build_server: n4
-    nexus_url: "http://3.90.1.192:8081/nexus"
-    repository: "releases"
+    nexus_url: "http://34.201.66.66:8081/nexus"
+    repo_id: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
-    packaging: "war"
-    deploy_path: "/opt/tomcat/webapps/WebAppCal.war"
+    war_file: "{{ artifact_id }}-{{ version }}.war"
+    tomcat_home: "/opt/tomcat"
+    deploy_dir: "{{ tomcat_home }}/webapps"
+    backup_dir: "/tmp/backup"
 
-    tasks:
-    - name: Download WAR from Nexus
+  tasks:
+    - name: Get latest version of the artifact from Nexus
+      uri:
+        url: "{{ nexus_url }}/service/local/artifact/maven/resolve?r={{ repo_id }}&g={{ group_id }}&a={{ artifact_id }}&v=LATEST"
+        method: GET
+        return_content: yes
+        status_code: 200
+      register: nexus_response
+
+    - name: Set version based on Nexus response
+      set_fact:
+        version: "{{ nexus_response.json.data.version }}"
+
+    - name: Create backup directory if not exists
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+
+    - name: Backup existing WAR file if it exists
+      copy:
+        src: "{{ deploy_dir }}/{{ war_file }}"
+        dest: "{{ backup_dir }}/{{ war_file }}.{{ ansible_date_time.date }}_{{ ansible_date_time.time }}"
+      ignore_errors: yes
+
+    - name: Download WAR file from Nexus
       get_url:
-        url: "{{ nexus_url }}/repository/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.{{ packaging }}"
-        dest: "{{ deploy_path }}"
-        force: yes
-        timeout: 30  # Adjust as needed
-      register: download_result
-      
+        url: "{{ nexus_url }}/service/local/artifact/maven/content?r={{ repo_id }}&g={{ group_id }}&a={{ artifact_id }}&v={{ version }}&p=war"
+        dest: "/tmp/{{ war_file }}"
+        mode: '0644'
+
     - name: Stop Tomcat service
-      shell: "/opt/tomcat/bin/shutdown.sh"
-      args:
-        chdir: /opt/tomcat/
+      service:
+        name: tomcat
+        state: stopped
+
+    - name: Deploy WAR file to Tomcat
+      copy:
+        src: "/tmp/{{ war_file }}"
+        dest: "{{ deploy_dir }}/"
+        owner: tomcat
+        group: tomcat
+        mode: '0644'
 
     - name: Start Tomcat service
-      shell: "/opt/tomcat/bin/startup.sh"
-      args:
-        chdir: /opt/tomcat/
+      service:
+        name: tomcat
+        state: started
+
+    - name: Clean up downloaded WAR file
+      file:
+        path: "/tmp/{{ war_file }}"
+        state: absent
