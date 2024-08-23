@@ -6,33 +6,18 @@
     repo_id: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
-    version: "0.0.6"  # Version found in the Nexus repository
+    version: "0.0.6"  # Update this as needed or implement dynamic version fetching
     tomcat_home: "/opt/tomcat"
     deploy_dir: "{{ tomcat_home }}/webapps"
     backup_dir: "/tmp/backup"
 
   tasks:
-    - name: Create backup directory if not exists
-      file:
-        path: "{{ backup_dir }}"
-        state: directory
-
-    - name: Backup existing WAR file if it exists
-      copy:
-        src: "{{ deploy_dir }}/{{ artifact_id }}.war"
-        dest: "{{ backup_dir }}/{{ artifact_id }}.war.{{ ansible_date_time.date }}_{{ ansible_date_time.time }}"
-      ignore_errors: yes
-
+  
     - name: Download WAR file from Nexus
       get_url:
         url: "{{ nexus_url }}/content/repositories/releases/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.war"
         dest: "/tmp/{{ artifact_id }}-{{ version }}.war"
         mode: '0644'
-
-    - name: Stop Tomcat service
-      service:
-        name: tomcat
-        state: stopped
 
     - name: Deploy WAR file to Tomcat
       copy:
@@ -42,10 +27,10 @@
         group: tomcat
         mode: '0644'
 
-    - name: Start Tomcat service
+    - name: Restart Tomcat service
       service:
         name: tomcat
-        state: started
+        state: restarted
 
     - name: Clean up downloaded WAR file
       file:
