@@ -11,8 +11,7 @@
     packaging: "war"
     deploy_path: "/opt/tomcat/webapps/WebAppCal.war"
 
-
-
+    tasks:
     - name: Download WAR from Nexus
       get_url:
         url: "{{ nexus_url }}/repository/{{ repository }}/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/{{ version }}/{{ artifact_id }}-{{ version }}.{{ packaging }}"
