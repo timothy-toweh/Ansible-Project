@@ -24,8 +24,4 @@
         name: tomcat
         state: restarted
 
-    - name: Clean up old artifacts (optional)
-      file:
-        path: "{{ tomcat_webapps_dir }}/WebAppCal-0.0.6.war"
-        state: absent
-      when: ansible_date_time.iso8601 | to_datetime | regex_replace('T.*', '') != (ansible_date_time.iso8601 | to_datetime | regex_replace('T.*', ''))  # Example condition for cleanup
+    
