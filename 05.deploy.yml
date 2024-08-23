@@ -6,23 +6,29 @@
     repo_id: "releases"
     group_id: "com.web.cal"
     artifact_id: "WebAppCal"
-    war_file: "{{ artifact_id }}-{{ version }}.war"
     tomcat_home: "/opt/tomcat"
     deploy_dir: "{{ tomcat_home }}/webapps"
     backup_dir: "/tmp/backup"
 
   tasks:
-    - name: Get latest version of the artifact from Nexus
+    - name: Get metadata from Nexus
       uri:
-        url: "{{ nexus_url }}/service/local/artifact/maven/resolve?r={{ repo_id }}&g={{ group_id }}&a={{ artifact_id }}&v=LATEST"
+        url: "{{ nexus_url }}/service/local/repositories/{{ repo_id }}/content/{{ group_id | replace('.', '/') }}/{{ artifact_id }}/maven-metadata.xml"
         method: GET
         return_content: yes
-        status_code: 200
-      register: nexus_response
+      register: metadata_response
+      failed_when: metadata_response.status != 200
 
-    - name: Set version based on Nexus response
+    - name: Extract latest version from metadata
+      xml:
+        xmlstring: "{{ metadata_response.content }}"
+        xpath: "/metadata/versioning/latest"
+        content: text
+      register: latest_version
+
+    - name: Set version based on metadata
       set_fact:
-        version: "{{ nexus_response.json.data.version }}"
+        version: "{{ latest_version.matches[0] }}"
 
     - name: Create backup directory if not exists
       file:
@@ -31,14 +37,14 @@
 
     - name: Backup existing WAR file if it exists
       copy:
-        src: "{{ deploy_dir }}/{{ war_file }}"
-        dest: "{{ backup_dir }}/{{ war_file }}.{{ ansible_date_time.date }}_{{ ansible_date_time.time }}"
+        src: "{{ deploy_dir }}/{{ artifact_id }}-{{ version }}.war"
+        dest: "{{ backup_dir }}/{{ artifact_id }}-{{ version }}.war.{{ ansible_date_time.date }}_{{ ansible_date_time.time }}"
       ignore_errors: yes
 
     - name: Download WAR file from Nexus
       get_url:
         url: "{{ nexus_url }}/service/local/artifact/maven/content?r={{ repo_id }}&g={{ group_id }}&a={{ artifact_id }}&v={{ version }}&p=war"
-        dest: "/tmp/{{ war_file }}"
+        dest: "/tmp/{{ artifact_id }}-{{ version }}.war"
         mode: '0644'
 
     - name: Stop Tomcat service
@@ -48,7 +54,7 @@
 
     - name: Deploy WAR file to Tomcat
       copy:
-        src: "/tmp/{{ war_file }}"
+        src: "/tmp/{{ artifact_id }}-{{ version }}.war"
         dest: "{{ deploy_dir }}/"
         owner: tomcat
         group: tomcat
@@ -61,5 +67,5 @@
 
     - name: Clean up downloaded WAR file
       file:
-        path: "/tmp/{{ war_file }}"
+        path: "/tmp/{{ artifact_id }}-{{ version }}.war"
         state: absent
