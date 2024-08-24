@@ -3,7 +3,7 @@
   hosts: deploy
   become: yes
   vars:
-    artifact_url: "http://34.201.66.66:8081/nexus/content/repositories/releases/com/web/cal/WebAppCal/0.0.6/WebAppCal-0.0.6.war"
+    artifact_url: "http://18.205.103.243:8081/nexus/content/repositories/releases/com/web/cal/WebAppCal/0.0.6/WebAppCal-0.0.6.war"
     tomcat_webapps_dir: "/opt/tomcat/webapps"
     local_artifact_path: "{{ tomcat_webapps_dir }}/WebAppCal-0.0.6.war"
 
