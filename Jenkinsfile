@@ -46,12 +46,12 @@ pipeline {
 
     post {
         success {
-            mail to: 'timothytoweh1@gmail.com',
+            mail to: 'timothytoweh1@gmail.com, olubusolamada@gmail.com',
                  subject: 'Java Calculator Jenkins CI-CD Successful',
                  body: 'Java Calculator Jenkins CI-CD Job was successful, YAAAY'
         }
         failure {
-            mail to: 'timothytoweh1@gmail.com',
+            mail to: 'timothytoweh1@gmail.com, olubusolamada@gmail.com',
                  subject: 'Java Calculator Jenkins CI-CD Failed',
                  body: 'Java Calculator Jenkins CI-CD job failed, sorry'
         }
